@@ -22,6 +22,7 @@ from .config import Settings, load_settings
 from .ingest import ingest_repo
 from .lifecycle import forget_memory, improve_memory
 from .recall import DEFAULT_MODE, recall
+from .update import update_memory
 
 
 class RecallRequest(BaseModel):
@@ -63,6 +64,14 @@ class DatasetRequest(BaseModel):
 
     dataset: Optional[str] = Field(None, description="Dataset/namespace name")
     everything: bool = Field(False, description="forget only: wipe ALL datasets")
+
+
+class UpdateRequest(BaseModel):
+    """Body for ``POST /update``."""
+
+    repo: str = Field(..., description="Path to the repository root to sync")
+    dataset: Optional[str] = Field(None, description="Dataset/namespace name")
+    full: bool = Field(False, description="Force a full rebuild")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -107,6 +116,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return IngestResponse(**result.__dict__)
+
+    @app.post("/update")
+    async def update_post(req: UpdateRequest) -> dict:
+        """Sync a dataset's memory with the repo's current state."""
+        try:
+            result = await update_memory(
+                req.repo, settings, dataset=req.dataset, full=req.full
+            )
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return {
+            "dataset": result.dataset,
+            "added": result.added,
+            "modified": result.modified,
+            "removed": result.removed,
+            "rebuilt": result.rebuilt,
+            "changed": result.changed,
+        }
 
     @app.post("/improve")
     async def improve_post(req: DatasetRequest) -> dict:

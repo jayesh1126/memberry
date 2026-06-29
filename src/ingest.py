@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
 
+from . import manifest
 from .config import Settings, apply_to_cognee
 
 
@@ -107,19 +108,25 @@ async def ingest_repo(repo_path: str, settings: Settings, dataset: str | None = 
     dataset = dataset or settings.default_dataset
 
     documents: list[str] = []
+    files: dict[str, str] = {}
     skipped = total_bytes = 0
     for path in iter_source_files(repo, settings):
         content = _read_text(path)
         if content is None or not content.strip():
             skipped += 1
             continue
+        rel = path.resolve().relative_to(repo).as_posix()
         documents.append(_as_document(repo, path, content))
+        files[rel] = manifest.file_sha256(path)
         total_bytes += len(content.encode("utf-8"))
 
     if documents:
         # One lifecycle call ingests, structures, and self-improves the whole
         # batch (Cognee 1.x `remember`). self_improvement is on by default.
         await cognee.remember(documents, dataset_name=dataset)
+
+    # Record a manifest baseline so later `update` can detect changes.
+    manifest.save_manifest(manifest.manifest_path(settings, dataset), str(repo), files)
 
     return IngestResult(
         repo=str(repo),

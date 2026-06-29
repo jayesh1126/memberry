@@ -69,20 +69,29 @@ and swappable. Cognee is imported lazily inside functions so the CLI loads
 - `improve_memory(settings, dataset)` → `cognee.improve()`.
 - `forget_memory(settings, dataset, everything)` → `cognee.forget()`.
 
-### 4.5 `src/serve.py`
+### 4.5 `src/manifest.py` + `src/update.py`
+- `manifest.py` — per-dataset `{relpath: sha256}` JSON (under system root,
+  outside the repo): `manifest_path`, `file_sha256`, `load`/`save`, `diff`.
+- `update_memory(repo, settings, dataset, full)` — diffs repo vs manifest;
+  no Cognee calls when unchanged; incremental `remember` for new files;
+  rebuild (`forget` + re-`remember`) when files change/are removed.
+- `watch_repo(...)` — polls and runs `update_memory` on change (living memory).
+- `ingest_repo` writes the baseline manifest so the first `update` can diff.
+
+### 4.6 `src/serve.py`
 - `create_app(settings)` → FastAPI app.
 - Endpoints: `GET /health`, `GET|POST /recall`, `POST /ingest`,
-  `POST /improve`, `POST /forget`.
+  `POST /update`, `POST /improve`, `POST /forget`.
 - `run(host, port)` boots Uvicorn.
 
-### 4.6 `src/cli_utils.py`
+### 4.7 `src/cli_utils.py`
 - `quiet_logging()` / `verbose_logging()` — control Cognee log noise.
 - `spinner(message)` — TTY-only progress indicator.
 
-### 4.7 `memberry.py`
-- argparse CLI: `ingest`, `recall`, `improve`, `forget`, `serve`; `--json`
-  on `ingest`/`recall`, `--verbose` on all. Translates the Kuzu single-writer
-  lock error into a friendly message.
+### 4.8 `memberry.py`
+- argparse CLI: `ingest`, `recall`, `update`, `watch`, `improve`, `forget`,
+  `serve`; `--json` on `ingest`/`recall`, `--verbose` on all. Translates the
+  Kuzu single-writer lock error into a friendly message.
 
 ## 5. Data model
 
@@ -120,7 +129,9 @@ recall) run automatically when Cognee is installed.
 
 ## 9. Stretch goals
 
-- Incremental re-ingest / `watch` daemon driven by file changes.
+- ~~Incremental re-ingest / `watch` daemon driven by file changes.~~ **Done**
+  (`update` / `watch`).
+- Surgical per-file updates (track Cognee data ids) instead of rebuild-on-change.
 - `query_type=CODING_RULES` / Cognee code-graph pipeline for call-graph awareness.
 - Per-repo auto dataset naming and a `list` command.
 - MCP server wrapper so agents discover MEMBERRY as a tool automatically.

@@ -23,6 +23,7 @@ from src.config import load_settings
 from src.ingest import ingest_repo
 from src.lifecycle import forget_memory, improve_memory
 from src.recall import DEFAULT_MODE, recall
+from src.update import update_memory, watch_repo
 
 
 def _cmd_ingest(args: argparse.Namespace) -> int:
@@ -80,6 +81,48 @@ def _cmd_forget(args: argparse.Namespace) -> int:
     return 0
 
 
+def _summarize_update(result) -> str:
+    """One-line summary of an UpdateResult."""
+    how = "rebuilt" if result.rebuilt else "incremental"
+    return (
+        f"dataset '{result.dataset}' ({how}): "
+        f"+{len(result.added)} new, ~{len(result.modified)} changed, "
+        f"-{len(result.removed)} removed"
+    )
+
+
+def _cmd_update(args: argparse.Namespace) -> int:
+    """Handle ``memberry update`` — sync memory with current repo state."""
+    settings = load_settings()
+    with spinner("Updating memory...", enabled=not args.verbose):
+        result = asyncio.run(
+            update_memory(args.repo, settings, dataset=args.dataset, full=args.full)
+        )
+    if not result.changed and not args.full:
+        print(f"Memory for dataset '{result.dataset}' is already up to date.")
+    else:
+        print(f"Updated {_summarize_update(result)}.")
+    return 0
+
+
+def _cmd_watch(args: argparse.Namespace) -> int:
+    """Handle ``memberry watch`` — keep memory in sync as files change."""
+    settings = load_settings()
+    print(
+        f"Watching {args.repo} every {args.interval:g}s "
+        f"(dataset '{args.dataset or settings.default_dataset}'). Ctrl+C to stop."
+    )
+    try:
+        watch_repo(
+            args.repo, settings, dataset=args.dataset,
+            interval=args.interval, full=args.full,
+            on_update=lambda r: print(f"  [updated] {_summarize_update(r)}"),
+        )
+    except KeyboardInterrupt:
+        print("\nStopped watching.")
+    return 0
+
+
 def _cmd_serve(args: argparse.Namespace) -> int:
     """Handle ``memberry serve``."""
     from src.serve import run
@@ -117,6 +160,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_recall.add_argument("--dataset", default=None, help="Dataset/namespace name")
     p_recall.add_argument("--json", action="store_true", help="Emit JSON output")
     p_recall.set_defaults(func=_cmd_recall)
+
+    p_update = sub.add_parser("update", parents=[common], help="Sync memory with changed files")
+    p_update.add_argument("--repo", required=True, help="Path to the repository root")
+    p_update.add_argument("--dataset", default=None, help="Dataset/namespace name")
+    p_update.add_argument("--full", action="store_true", help="Force a full rebuild")
+    p_update.set_defaults(func=_cmd_update)
+
+    p_watch = sub.add_parser("watch", parents=[common], help="Auto-sync memory as files change")
+    p_watch.add_argument("--repo", required=True, help="Path to the repository root")
+    p_watch.add_argument("--dataset", default=None, help="Dataset/namespace name")
+    p_watch.add_argument("--interval", type=float, default=3.0, help="Poll interval seconds (default 3)")
+    p_watch.add_argument("--full", action="store_true", help="Force full rebuild on each change")
+    p_watch.set_defaults(func=_cmd_watch)
 
     p_improve = sub.add_parser("improve", parents=[common], help="Enrich/sharpen existing memory")
     p_improve.add_argument("--dataset", default=None, help="Dataset/namespace name")

@@ -30,6 +30,8 @@ memberry/
 │   ├── ingest.py         ← repo crawling + cognee.remember()
 │   ├── recall.py         ← cognee.recall() wrapper
 │   ├── lifecycle.py      ← cognee.improve() / forget()
+│   ├── update.py         ← incremental update + watch daemon
+│   ├── manifest.py       ← per-dataset file-hash manifests
 │   ├── serve.py          ← FastAPI HTTP server
 │   ├── cli_utils.py      ← quiet logging + spinner
 │   └── config.py         ← env vars, settings
@@ -54,6 +56,8 @@ memberry/
 pip install -r requirements.txt
 python memberry.py ingest --repo /path/to/repo
 python memberry.py recall "what does the auth module do?"   # → cognee.recall()
+python memberry.py update --repo /path/to/repo      # incremental sync after edits
+python memberry.py watch --repo /path/to/repo       # auto-sync (living memory)
 python memberry.py improve                          # → cognee.improve()
 python memberry.py forget --dataset memberry        # → cognee.forget()
 python memberry.py serve --port 8765

@@ -56,11 +56,28 @@ MEMBERRY maps directly onto Cognee's memory **lifecycle** — `remember`,
 | --- | --- | --- |
 | `python memberry.py ingest --repo PATH [--dataset NAME]` | `remember()` | Crawl a repo and build its memory graph |
 | `python memberry.py recall "QUESTION" [--mode MODE]` | `recall()` | Ask a question about the ingested repo |
+| `python memberry.py update --repo PATH [--dataset NAME]` | `remember()`/`forget()` | Sync memory with changed files (incremental) |
+| `python memberry.py watch --repo PATH [--interval N]` | `remember()`/`forget()` | Auto-sync memory as you edit — *living memory* |
 | `python memberry.py improve [--dataset NAME]` | `improve()` | Enrich/sharpen memory so recall gets better over time |
 | `python memberry.py forget [--dataset NAME] [--all]` | `forget()` | Delete a dataset (or wipe everything) |
 | `python memberry.py serve [--host H] [--port P]` | — | Start the HTTP recall server |
 
-Add `--json` to `ingest`/`recall` for machine-readable output.
+Add `--json` to `ingest`/`recall` for machine-readable output, or `--verbose`
+to any command for full Cognee logs.
+
+### Living memory (`update` / `watch`)
+
+Code changes, so memory must too. MEMBERRY tracks a per-dataset manifest of
+file hashes and only re-touches Cognee when something actually changed:
+
+```bash
+python memberry.py update --repo .         # sync after edits (no-op if unchanged)
+python memberry.py watch  --repo .         # keep memory fresh automatically
+```
+
+`update` re-`remember`s new files incrementally; when files are modified or
+removed it rebuilds the dataset so recall never surfaces stale code. `watch`
+runs that on a timer — edit a file, and the agent's memory follows.
 
 ### Recall modes
 
@@ -100,7 +117,15 @@ curl -X POST localhost:8765/recall \
 curl -X POST localhost:8765/ingest \
   -H 'content-type: application/json' \
   -d '{"repo": "./examples/demo_repo"}'
+
+# Update after edits (POST)
+curl -X POST localhost:8765/update \
+  -H 'content-type: application/json' \
+  -d '{"repo": "./examples/demo_repo"}'
 ```
+
+Full endpoint set: `GET /health`, `GET|POST /recall`, `POST /ingest`,
+`POST /update`, `POST /improve`, `POST /forget`. Interactive docs at `/docs`.
 
 Interactive docs at `http://localhost:8765/docs`.
 
@@ -164,6 +189,8 @@ memberry/
 │   ├── ingest.py        # repo crawl + cognee.remember()
 │   ├── recall.py        # cognee.recall() wrapper
 │   ├── lifecycle.py     # cognee.improve() / forget()
+│   ├── update.py        # incremental update + watch daemon (living memory)
+│   ├── manifest.py      # per-dataset file-hash manifests
 │   ├── serve.py         # FastAPI HTTP server
 │   └── cli_utils.py     # quiet logging + progress spinner
 ├── tests/               # offline unit tests
