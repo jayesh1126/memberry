@@ -1,0 +1,10 @@
+# MEMBERRY runtime dependencies
+# Pinned loosely for hackathon reproducibility; tighten before release.
+
+# Cognee 1.x exposes the remember/recall/improve/forget lifecycle MEMBERRY uses.
+# The [fastembed] extra enables local embeddings (no OpenAI key required).
+cognee[fastembed]>=1.2,<2  # hybrid graph + vector memory layer (the star of the show)
+fastapi>=0.110             # HTTP recall server
+uvicorn[standard]>=0.29    # ASGI server for FastAPI
+python-dotenv>=1.0         # load configuration from .env
+pydantic>=2.6              # request/response models for the server
