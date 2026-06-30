@@ -16,9 +16,9 @@ import pytest
 # Make the project root importable when running ``pytest`` from anywhere.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.config import load_settings  # noqa: E402
-from src.ingest import iter_source_files  # noqa: E402
-from src.recall import _MODE_TO_SEARCH_TYPE, _stringify  # noqa: E402
+from memberry.config import load_settings  # noqa: E402
+from memberry.ingest import iter_source_files  # noqa: E402
+from memberry.recall import _MODE_TO_SEARCH_TYPE, _stringify  # noqa: E402
 
 
 def test_load_settings_has_sane_defaults(monkeypatch):

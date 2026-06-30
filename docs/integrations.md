@@ -6,8 +6,8 @@ MEMBERRY exposes recall over HTTP, so any agent that can make an HTTP request
 Start the server first:
 
 ```bash
-python memberry.py ingest --repo .        # remember the current repo
-python memberry.py serve --port 8765      # http://localhost:8765
+memberry ingest --repo .        # remember the current repo
+memberry serve --port 8765      # http://localhost:8765
 ```
 
 ---
@@ -37,7 +37,7 @@ project's `CLAUDE.md` so the agent knows the tool exists:
 ```md
 ## Codebase memory
 Before exploring unfamiliar code, query MEMBERRY for context:
-`python memberry.py recall "<question>"`
+`memberry recall "<question>"`
 (or `curl localhost:8765/recall?query=<question>` if the server is running)
 ```
 
@@ -53,7 +53,7 @@ Cline rules / `.clinerules`:
 
 ```
 When you need background on this repo, run:
-  python memberry.py recall "<your question>" --json
+  memberry recall "<your question>" --json
 and use the "answer" field before reading files manually.
 ```
 
@@ -66,7 +66,7 @@ If you prefer HTTP, point Cline at `http://localhost:8765/recall`.
 Aider works from the shell. Pull context into your prompt:
 
 ```bash
-CTX=$(python memberry.py recall "where is rate limiting handled?")
+CTX=$(memberry recall "where is rate limiting handled?")
 aider --message "Context from MEMBERRY:\n$CTX\n\nNow add a per-IP limit."
 ```
 

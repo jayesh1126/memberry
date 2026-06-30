@@ -25,8 +25,10 @@ memberry/
 ├── SPEC.md
 ├── README.md
 ├── requirements.txt
-├── memberry.py              ← CLI entrypoint
-├── src/
+├── pyproject.toml           ← packaging + `memberry` console script
+├── memberry/                ← the package
+│   ├── cli.py            ← CLI entrypoint (argparse)
+│   ├── doctor.py         ← `memberry doctor` preflight checks
 │   ├── ingest.py         ← repo crawling + cognee.remember()
 │   ├── recall.py         ← cognee.recall() wrapper
 │   ├── lifecycle.py      ← cognee.improve() / forget()
@@ -53,14 +55,15 @@ memberry/
 - README is the product — if it's not in the README, it doesn't exist
 
 ## Commands to know
-pip install -r requirements.txt
-python memberry.py ingest --repo /path/to/repo
-python memberry.py recall "what does the auth module do?"   # → cognee.recall()
-python memberry.py update --repo /path/to/repo      # incremental sync after edits
-python memberry.py watch --repo /path/to/repo       # auto-sync (living memory)
-python memberry.py improve                          # → cognee.improve()
-python memberry.py forget --dataset memberry        # → cognee.forget()
-python memberry.py serve --port 8765
+pip install -e .                    # installs the `memberry` command
+memberry doctor                     # preflight env + live LLM/embedding checks
+memberry ingest --repo /path/to/repo
+memberry recall "what does the auth module do?"   # → cognee.recall()
+memberry update --repo /path/to/repo      # incremental sync after edits
+memberry watch --repo /path/to/repo       # auto-sync (living memory)
+memberry improve                          # → cognee.improve()
+memberry forget --dataset memberry        # → cognee.forget()
+memberry serve --port 8765
 
 ## Cognee notes (verified against v1.2.2)
 - Lifecycle API: remember / recall / improve / forget (all async).

@@ -16,8 +16,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src import manifest  # noqa: E402
-from src.config import load_settings  # noqa: E402
+from memberry import manifest  # noqa: E402
+from memberry.config import load_settings  # noqa: E402
 
 
 def _isolated(tmp_path: Path):
@@ -61,7 +61,7 @@ def test_file_sha256_changes_with_content(tmp_path: Path):
 def test_update_no_change_skips_cognee(tmp_path: Path):
     # A matching manifest means update_memory should return "no change"
     # without importing Cognee — so this runs even without Cognee installed.
-    from src import update
+    from memberry import update
 
     settings, repo = _isolated(tmp_path)
     (repo / "mod.py").write_text("x = 1\n", encoding="utf-8")
@@ -78,7 +78,7 @@ def test_update_detects_modification(tmp_path: Path, monkeypatch):
     pytest.importorskip("cognee")
     import cognee
 
-    from src import update
+    from memberry import update
 
     settings, repo = _isolated(tmp_path)
     f = repo / "mod.py"

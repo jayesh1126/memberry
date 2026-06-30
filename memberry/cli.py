@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """MEMBERRY — codebase memory for AI coding agents.
 
-CLI entrypoint. Three subcommands:
+CLI entrypoint, exposed as the ``memberry`` console command. Examples:
 
-    python memberry.py ingest --repo /path/to/repo [--dataset NAME]
-    python memberry.py recall "what does the auth module do?" [--mode answer]
-    python memberry.py serve [--host 127.0.0.1] [--port 8765]
+    memberry doctor
+    memberry ingest --repo /path/to/repo [--dataset NAME]
+    memberry recall "what does the auth module do?" [--mode answer]
+    memberry serve [--host 127.0.0.1] [--port 8765]
 
 Uses only the standard library (``argparse``) for the CLI surface so the
 tool stays trivial to install and run.
@@ -18,12 +19,13 @@ import asyncio
 import json
 import sys
 
-from src.cli_utils import quiet_logging, spinner, verbose_logging
-from src.config import load_settings
-from src.ingest import ingest_repo
-from src.lifecycle import forget_memory, improve_memory
-from src.recall import DEFAULT_MODE, recall
-from src.update import update_memory, watch_repo
+from .cli_utils import quiet_logging, spinner, verbose_logging
+from .config import load_settings
+from .doctor import format_checks, run_doctor
+from .ingest import ingest_repo
+from .lifecycle import forget_memory, improve_memory
+from .recall import DEFAULT_MODE, recall
+from .update import update_memory, watch_repo
 
 
 def _cmd_ingest(args: argparse.Namespace) -> int:
@@ -125,10 +127,19 @@ def _cmd_watch(args: argparse.Namespace) -> int:
 
 def _cmd_serve(args: argparse.Namespace) -> int:
     """Handle ``memberry serve``."""
-    from src.serve import run
+    from .serve import run
 
     run(host=args.host, port=args.port)
     return 0
+
+
+def _cmd_doctor(args: argparse.Namespace) -> int:
+    """Handle ``memberry doctor`` — preflight the environment and providers."""
+    settings = load_settings()
+    with spinner("Running checks...", enabled=not args.verbose):
+        checks = asyncio.run(run_doctor(settings, live=not args.offline))
+    print(format_checks(checks))
+    return 0 if all(c.ok for c in checks) else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -144,6 +155,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Show full Cognee logs instead of clean output",
     )
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p_doctor = sub.add_parser("doctor", parents=[common], help="Preflight environment + provider checks")
+    p_doctor.add_argument("--offline", action="store_true", help="Skip live LLM/embedding checks")
+    p_doctor.set_defaults(func=_cmd_doctor)
 
     p_ingest = sub.add_parser("ingest", parents=[common], help="Ingest a repo into memory")
     p_ingest.add_argument("--repo", required=True, help="Path to the repository root")

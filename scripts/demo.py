@@ -24,7 +24,7 @@ def run(*args: str) -> int:
     """Invoke the MEMBERRY CLI with the active interpreter and echo the call."""
     print(f"\n$ memberry {' '.join(args)}\n" + "-" * 60)
     return subprocess.run(
-        [sys.executable, str(ROOT / "memberry.py"), *args], cwd=ROOT
+        [sys.executable, "-m", "memberry", *args], cwd=ROOT
     ).returncode
 
 

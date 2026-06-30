@@ -43,13 +43,13 @@ and swappable. Cognee is imported lazily inside functions so the CLI loads
 
 ## 4. Components
 
-### 4.1 `src/config.py`
+### 4.1 `memberry/config.py`
 - `Settings` (frozen dataclass) built from env via `load_settings()`.
 - `apply_to_cognee(settings)` configures data/system roots and forwards LLM +
   embedding settings (including `ENABLE_BACKEND_ACCESS_CONTROL=false`).
 - Owns the include-extension and exclude-dir default lists.
 
-### 4.2 `src/ingest.py`
+### 4.2 `memberry/ingest.py`
 - `iter_source_files(repo, settings)` — generator yielding ingestable files;
   filters excluded dirs, non-source extensions, oversized and binary files.
 - `ingest_repo(repo_path, settings, dataset)` — async; collects files
@@ -57,7 +57,7 @@ and swappable. Cognee is imported lazily inside functions so the CLI loads
   to `cognee.remember()` in one call.
 - Returns `IngestResult(repo, dataset, files_ingested, files_skipped, bytes_ingested)`.
 
-### 4.3 `src/recall.py`
+### 4.3 `memberry/recall.py`
 - `recall(query, settings, mode, dataset)` — async; calls `cognee.recall()`
   (auto-routed unless a mode is given), normalises results to text, and reads
   a missing dataset as "no memory" instead of raising.
@@ -65,11 +65,11 @@ and swappable. Cognee is imported lazily inside functions so the CLI loads
 - Modes: `auto` (default), `answer`/`graph`, `rag`, `chunks`, `triplets`,
   `summaries`, `code`, `lucky`.
 
-### 4.4 `src/lifecycle.py`
+### 4.4 `memberry/lifecycle.py`
 - `improve_memory(settings, dataset)` → `cognee.improve()`.
 - `forget_memory(settings, dataset, everything)` → `cognee.forget()`.
 
-### 4.5 `src/manifest.py` + `src/update.py`
+### 4.5 `memberry/manifest.py` + `memberry/update.py`
 - `manifest.py` — per-dataset `{relpath: sha256}` JSON (under system root,
   outside the repo): `manifest_path`, `file_sha256`, `load`/`save`, `diff`.
 - `update_memory(repo, settings, dataset, full)` — diffs repo vs manifest;
@@ -78,20 +78,26 @@ and swappable. Cognee is imported lazily inside functions so the CLI loads
 - `watch_repo(...)` — polls and runs `update_memory` on change (living memory).
 - `ingest_repo` writes the baseline manifest so the first `update` can diff.
 
-### 4.6 `src/serve.py`
+### 4.6 `memberry/serve.py`
 - `create_app(settings)` → FastAPI app.
 - Endpoints: `GET /health`, `GET|POST /recall`, `POST /ingest`,
   `POST /update`, `POST /improve`, `POST /forget`.
 - `run(host, port)` boots Uvicorn.
 
-### 4.7 `src/cli_utils.py`
+### 4.7 `memberry/cli_utils.py`
 - `quiet_logging()` / `verbose_logging()` — control Cognee log noise.
 - `spinner(message)` — TTY-only progress indicator.
 
-### 4.8 `memberry.py`
-- argparse CLI: `ingest`, `recall`, `update`, `watch`, `improve`, `forget`,
-  `serve`; `--json` on `ingest`/`recall`, `--verbose` on all. Translates the
-  Kuzu single-writer lock error into a friendly message.
+### 4.8 `memberry/doctor.py`
+- `run_doctor(settings, live)` — preflight checks: Python version, Cognee
+  install, config summary, API key, writable storage, and (live) LLM +
+  embedding connection tests. `format_checks` renders the report.
+
+### 4.9 `memberry/cli.py` (entry point)
+- argparse CLI exposed as the `memberry` console command (and `python -m
+  memberry`): `doctor`, `ingest`, `recall`, `update`, `watch`, `improve`,
+  `forget`, `serve`; `--json` on `ingest`/`recall`, `--verbose` on all.
+  Translates the Kuzu single-writer lock error into a friendly message.
 
 ## 5. Data model
 
